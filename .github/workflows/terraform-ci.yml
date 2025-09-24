@@ -1,0 +1,33 @@
+name: 'Terraform - Validación Continua (CI)'
+
+on:
+  push:
+    branches-ignore: 
+      - 'main'
+      - 'infra/dev'
+
+env:
+  tf_working_dir: '.' # Ajusta si tu código Terraform está en un subdirectorio
+
+jobs:
+  validate:
+    name: 'Validar Terraform'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.tf_working_dir }}
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Configurar Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init -backend=false
+
+      - name: Terraform Validate
+        run: terraform validate -no-color
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
