@@ -2,32 +2,59 @@ name: 'Terraform - Validación Continua (CI)'
 
 on:
   push:
-    branches-ignore: 
+    branches-ignore:
       - 'main'
       - 'infra/dev'
 
 env:
-  tf_working_dir: '.' # Ajusta si tu código Terraform está en un subdirectorio
+  tf_working_dir: '.'
 
 jobs:
   validate:
     name: 'Validar Terraform'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # necesario para auto-commit
     defaults:
       run:
         working-directory: ${{ env.tf_working_dir }}
     steps:
       - name: Checkout del código
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Configurar Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
 
-      - name: Terraform Init
-        run: terraform init -backend=false
+      - name: Terraform Init (sin backend)
+        run: terraform init -backend=false -input=false
+
+      # Auto-formatea (no falla el job); guarda lista de archivos tocados
+      - name: Terraform Format (auto-fix)
+        id: fmt
+        run: |
+          set -e
+          CHANGED="$(terraform fmt -recursive -list=true || true)"
+          echo "changed<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGED" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          if [ -n "$CHANGED" ]; then
+            echo "Se formatearon estos archivos:"
+            echo "$CHANGED"
+          else
+            echo "No había diferencias de formato."
+          fi
+
+      - name: Auto-commit formatted files
+        if: steps.fmt.outputs.changed != ''
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'chore(tf): auto format with terraform fmt'
+          commit_user_name: 'github-actions[bot]'
+          commit_user_email: '41898282+github-actions[bot]@users.noreply.github.com'
 
       - name: Terraform Validate
         run: terraform validate -no-color
-
-      - name: Terraform Format Check
-        run: terraform fmt -check -recursive
