@@ -22,9 +22,9 @@ resource "azurerm_linux_virtual_machine_scale_set" "this" {
     name    = "${var.name}-nic"
     primary = true
     ip_configuration {
-      name      = "${var.name}-ipcfg"
-      subnet_id = var.subnet_id
-      primary   = true
+      name                                   = "${var.name}-ipcfg"
+      subnet_id                              = var.subnet_id
+      primary                                = true
       load_balancer_backend_address_pool_ids = var.backend_address_pool_id != null ? [var.backend_address_pool_id] : null
     }
   }
@@ -43,7 +43,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "this" {
       publisher            = "Microsoft.Azure.Extensions"
       type                 = "CustomScript"
       type_handler_version = "2.1"
-      settings = <<SETTINGS
+      settings             = <<SETTINGS
         {
           "fileUris": ["${var.custom_script_uri}"],
           "commandToExecute": "${var.custom_script_command}"

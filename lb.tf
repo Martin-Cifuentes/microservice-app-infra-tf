@@ -16,11 +16,11 @@ resource "azurerm_lb_backend_address_pool" "frontend_pool" {
 }
 
 resource "azurerm_lb_probe" "frontend_probe" {
-  name                = "frontend-probe"
-  loadbalancer_id     = azurerm_lb.main.id
-  protocol            = "Http"
-  port                = 80
-  request_path        = "/"
+  name            = "frontend-probe"
+  loadbalancer_id = azurerm_lb.main.id
+  protocol        = "Http"
+  port            = 80
+  request_path    = "/"
 }
 
 resource "azurerm_lb_rule" "frontend_rule" {

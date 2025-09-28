@@ -18,7 +18,7 @@ variable "vnet_cidr" {
 }
 
 variable "subnet_app_cidr" { default = "10.0.1.0/24" }
-variable "subnet_lb_cidr"  { default = "10.0.2.0/24" }
+variable "subnet_lb_cidr" { default = "10.0.2.0/24" }
 
 variable "admin_username" {
   type    = string
@@ -32,5 +32,5 @@ variable "admin_ssh_key" {
 variable "subscription_id" {
   description = "Azure Subscription ID"
   type        = string
-  sensitive   = true  
+  sensitive   = true
 }
