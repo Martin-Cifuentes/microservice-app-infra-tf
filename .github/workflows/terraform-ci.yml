@@ -3,7 +3,7 @@ name: 'Terraform - Validación Continua (CI)'
 on:
   push:
     branches-ignore:
-      - 'main'
+      -   'main'
       - 'infra/dev'
 
 env:
