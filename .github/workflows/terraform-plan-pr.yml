@@ -3,7 +3,7 @@ name: 'Terraform - Plan en PR'
 on:
   # Permite comentar en PRs desde forks
   pull_request_target:
-    branches: ['main', 'infra/dev']
+    branches: ['main']
     types: [opened, synchronize, reopened]
 
 permissions:
