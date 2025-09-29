@@ -1,7 +1,6 @@
 name: 'Terraform - Plan en PR'
-
+# Plan de Terraform en PRs hacia main con OIDC (comentario en la PR)
 on:
-  # Permite comentar en PRs desde forks
   pull_request_target:
     branches: ['main']
     types: [opened, synchronize, reopened]
@@ -10,6 +9,7 @@ permissions:
   contents: read
   pull-requests: write
   issues: write
+  id-token: write  # <-- necesario para OIDC
 
 env:
   tf_working_dir: '.'
@@ -22,9 +22,14 @@ jobs:
       run:
         working-directory: ${{ env.tf_working_dir }}
     env:
-      # Satisface tus variables requeridas en variables.tf
+      # Variables requeridas por tu variables.tf
       TF_VAR_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       TF_VAR_admin_ssh_key:   ${{ secrets.ADMIN_SSH_PUBLIC_KEY }}
+      # Forzar al provider azurerm a OIDC (evita Azure CLI)
+      ARM_USE_OIDC: "true"
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
     steps:
       # Con pull_request_target, checkoutea el HEAD del PR de forma segura
@@ -35,10 +40,19 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
+      # *** ESTE PASO ES CLAVE ***
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id:      ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id:      ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
+          # terraform_version: 1.9.5  # opcional
 
       - name: Terraform Init (local backend)
         id: init
