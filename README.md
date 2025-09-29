@@ -238,24 +238,4 @@ output "vmss_ids" {
     module.log_processor.vmss_id,
   ]
 }
-```
 
-## Beneficios de la Arquitectura
-
-1. **Alta Disponibilidad**: Load balancer + múltiples instancias
-2. **Escalabilidad**: Autoscaling automático según demanda
-3. **Resiliencia**: Health checks y failover automático
-4. **Costos Optimizados**: Escalado a 0 cuando no hay demanda
-5. **Monitoreo**: Logging centralizado y métricas
-6. **Seguridad**: Segmentación de red y acceso controlado
-
-## Próximos Pasos
-
-Para completar la implementación, considera:
-- Configurar reglas de autoscaling basadas en métricas
-- Implementar CI/CD para despliegues automáticos
-- Configurar alertas de monitoreo
-- Implementar backup y disaster recovery
-- Configurar SSL/TLS para tráfico seguro
-
----
