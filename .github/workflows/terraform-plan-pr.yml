@@ -1,5 +1,5 @@
 name: 'Terraform - Plan en PR'
-
+#Prueba de Terraform en Pull Requests (PR) hacia main
 on:
   # Permite comentar en PRs desde forks
   pull_request_target:
