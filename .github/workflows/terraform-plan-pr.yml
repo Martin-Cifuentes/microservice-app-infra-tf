@@ -1,16 +1,17 @@
 name: 'Terraform - Plan en PR'
 
 on:
-  pull_request:
-    branches:
-      - 'main'
-      - 'infra/dev'
+  # Permite comentar en PRs desde forks
+  pull_request_target:
+    branches: ['main', 'infra/dev']
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
 
 env:
-  tf_resource_group_name: "tu-rg-del-estado"
-  tf_storage_account_name: "tustorageaccount"
-  tf_state_container: "tfstate"
-  tf_state_key: "terraform.tfstate"
   tf_working_dir: '.'
 
 jobs:
@@ -20,25 +21,28 @@ jobs:
     defaults:
       run:
         working-directory: ${{ env.tf_working_dir }}
+    env:
+      # Satisface tus variables requeridas en variables.tf
+      TF_VAR_subscription_id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      TF_VAR_admin_ssh_key:   ${{ secrets.ADMIN_SSH_PUBLIC_KEY }}
 
     steps:
-      - name: Checkout del código
+      # Con pull_request_target, checkoutea el HEAD del PR de forma segura
+      - name: Checkout (PR head)
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          fetch-depth: 0
 
-      - name: Configurar Terraform
+      - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_wrapper: false  # facilita captura de salidas/manual
+          terraform_wrapper: false
 
-      - name: Terraform Init
+      - name: Terraform Init (local backend)
         id: init
-        run: |
-          terraform init \
-            -backend-config="resource_group_name=${{ env.tf_resource_group_name }}" \
-            -backend-config="storage_account_name=${{ env.tf_storage_account_name }}" \
-            -backend-config="container_name=${{ env.tf_state_container }}" \
-            -backend-config="key=${{ env.tf_state_key }}" \
-            -input=false
+        run: terraform init -backend=false -input=false
 
       - name: Terraform Format Check
         id: fmt
@@ -48,17 +52,12 @@ jobs:
         id: validate
         run: terraform validate -no-color
 
-      - name: Terraform Plan (to file)
+      - name: Terraform Plan (no refresh, to file)
         id: plan
         run: |
           set -e
-          terraform plan -no-color -input=false -out=tfplan.bin
+          terraform plan -no-color -input=false -refresh=false -out=tfplan.bin
           terraform show -no-color tfplan.bin > plan.txt
-          # guarda pequeños resúmenes como outputs
-          echo "summary<<EOF" >> $GITHUB_OUTPUT
-          grep -E 'Plan:|No changes. Infrastructure is up-to-date.' plan.txt || true
-          echo "" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Comentar Plan en la PR
         if: always()
@@ -67,28 +66,19 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-            const planBody = fs.existsSync('plan.txt')
-              ? fs.readFileSync('plan.txt', 'utf8').slice(0, 65500) // evitar límite
-              : 'No se generó plan (posible fallo en init/validate).';
+            const body = fs.existsSync('plan.txt') ? fs.readFileSync('plan.txt','utf8').slice(0,65000) : 'No se generó plan.';
+            const output = `#### Init ⚙️ \`${{ steps.init.outcome }}\`
+            #### Format 🎨 \`${{ steps.fmt.outcome }}\`
+            #### Validate ✅/❌ \`${{ steps.validate.outcome }}\`
+            #### Plan 📖 \`${{ steps.plan.outcome }}\`
 
-            const output = `#### Terraform Initialization ⚙️ \`${{ steps.init.outcome }}\`
-            #### Terraform Format 🎨 \`${{ steps.fmt.outcome }}\`
-            #### Terraform Validation ✅/❌ \`${{ steps.validate.outcome }}\`
-            #### Terraform Plan 📖 \`${{ steps.plan.outcome }}\`
-
-            <details><summary>Mostrar Plan Completo</summary>
+            <details><summary>Mostrar Plan</summary>
 
             \`\`\`
-            ${planBody}
+            ${body}
             \`\`\`
 
             </details>
 
-            _Ejecutado por: @${{ github.actor }} • Evento: \`${{ github.event_name }}\`_`;
-
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: output
-            });
+            _@${{ github.actor }} • \`${{ github.event_name }}\`_`;
+            await github.rest.issues.createComment({ issue_number: context.issue.number, owner: context.repo.owner, repo: context.repo.repo, body: output });
