@@ -239,9 +239,13 @@ output "vmss_ids" {
   ]
 }
 
+```
+
 ## Validación Continua con GitHub Actions (CI/CD)
 
 Este repositorio incluye un workflow de **GitHub Actions** (`.github/workflows/terraform-validate.yml`) que valida automáticamente la sintaxis y el formato de los archivos Terraform cada vez que se realiza un push a las ramas (excepto `main` e `infra/dev`).
+
+![alt text](diagrams/workflow.png)
 
 ### Flujo del Workflow
 
