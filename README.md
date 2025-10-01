@@ -239,3 +239,40 @@ output "vmss_ids" {
   ]
 }
 
+## Validación Continua con GitHub Actions (CI/CD)
+
+Este repositorio incluye un workflow de **GitHub Actions** (`.github/workflows/terraform-validate.yml`) que valida automáticamente la sintaxis y el formato de los archivos Terraform cada vez que se realiza un push a las ramas (excepto `main` e `infra/dev`).
+
+### Flujo del Workflow
+
+1. **Disparadores (`on`)**  
+   - Se ejecuta en cada `push` a ramas distintas de `main` e `infra/dev`.  
+   - Esto asegura que los cambios en ramas de features se validen antes de abrir un PR.  
+
+2. **Configuración del entorno**  
+   - Define la variable `tf_working_dir` para indicar el directorio donde se ejecuta Terraform.  
+   - Corre en `ubuntu-latest`.  
+
+3. **Pasos principales**  
+
+   - **Checkout del repositorio**  
+     Descarga el código fuente con historial completo (`fetch-depth: 0`).  
+
+   - **Configurar Terraform**  
+     Instala Terraform usando la acción oficial de HashiCorp.  
+
+   - **Terraform Init (sin backend)**  
+     Inicializa Terraform sin conectarse al backend remoto (`-backend=false`), ideal para validaciones ligeras.  
+
+   - **Terraform Format (auto-fix)**  
+     - Ejecuta `terraform fmt` en todos los archivos para aplicar el formato oficial.  
+     - Si hay archivos modificados, los lista y prepara para commit automático.  
+
+   - **Auto-commit de archivos formateados**  
+     - Si hubo cambios de formato, se realiza un commit automático con el mensaje:  
+       `chore(tf): auto format with terraform fmt`  
+
+   - **Terraform Validate**  
+     Ejecuta `terraform validate` para asegurar que la sintaxis y dependencias son correctas.
+---
+
